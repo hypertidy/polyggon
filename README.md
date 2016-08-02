@@ -149,3 +149,72 @@ ggplot(descpoints) +
 ```
 
 ![](figure/README-unnamed-chunk-6-2.png)
+
+But these are not very complicated polygons!
+--------------------------------------------
+
+Ok ok, so let's have a look at some that are.
+
+``` r
+library(rgdal)
+#> Loading required package: sp
+#> rgdal: version: 1.1-10, (SVN revision 622)
+#>  Geospatial Data Abstraction Library extensions to R successfully loaded
+#>  Loaded GDAL runtime: GDAL 2.0.1, released 2015/09/15
+#>  Path to GDAL shared files: C:/inst/R/R/library/rgdal/gdal
+#>  Loaded PROJ.4 runtime: Rel. 4.9.2, 08 September 2015, [PJ_VERSION: 492]
+#>  Path to PROJ.4 shared files: C:/inst/R/R/library/rgdal/proj
+#>  Linking to sp version: 1.2-3
+
+iw <- readOGR(system.file("extdata", "inlandwaters.gpkg", package = "polyggon"), "inlandwaters")
+#> OGR data source with driver: GPKG 
+#> Source: "C:/inst/R/R/library/polyggon/extdata/inlandwaters.gpkg", layer: "inlandwaters"
+#> with 9 features
+#> It has 2 fields
+plot(iw, col = rainbow(nrow(iw), alpha = 0.4))
+```
+
+![](figure/README-unnamed-chunk-7-1.png)
+
+Indeed those are some pretty riotously complicated polygons.
+
+Check out that detail!
+
+``` r
+library(spdplyr)
+iw %>% filter(Province == "Tasmania") %>% plot(col = "firebrick", border = NA)
+```
+
+![](figure/README-unnamed-chunk-8-1.png)
+
+``` r
+## try again, first we drop the non-main island pieces
+tasmain <- iw %>% filter(Province == "Tasmania")
+library(spbabel)
+sptable(tasmain) <- sptable(tasmain) %>% filter(!island_ | branch_ == 2)
+plot(tasmain, col = "firebrick", border = NA)
+with(sptable(tasmain), points(x_, y_, pch = "."))
+```
+
+![](figure/README-unnamed-chunk-8-2.png)
+
+``` r
+
+
+iwsa <- iw %>% filter(Province == "South Australia") 
+plot(iwsa, col = "dodgerblue", border = NA, bg = "grey"); p <- par(xpd = NA); llgridlines(iwsa); par(p)
+```
+
+![](figure/README-unnamed-chunk-8-3.png)
+
+Ggplot.
+
+``` r
+iwt <- fortify(iw)
+#> Regions defined for each Polygons
+
+## admittedly long and lat are not the right names at all
+ggplot(iwt) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon()
+```
+
+![](figure/README-unnamed-chunk-9-1.png)

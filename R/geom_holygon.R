@@ -6,10 +6,11 @@
 #' \code{\link{geom_map}} for a convenient way to tie the values and coordinates together,
 #'  \code{\link{geom_path}} for an unfilled polygon,
 #'  \code{\link{geom_ribbon}} for a polygon anchored on the x-axis
+#' @param rule character value specifying the path fill mode: either "winding" or "evenodd", see \code{\link[graphics]{polypath}}
 #' @export
 #' @inheritParams ggplot2::layer
 #' @inheritParams ggplot2::geom_point
-#' @importFrom grid pathGrob
+#' @importFrom grid gpar pathGrob
 #' @importFrom ggplot2 zeroGrob
 #' @examples
 #' # When using geom_holygon, you will typically need two data frames:
@@ -48,7 +49,8 @@
 #' (house <- ggplot(datapoly, aes(x = x, y = y)) + geom_holygon(aes(fill = value, group = group)))
 #'
 #' # just the front wall (and chimney), with its three parts, the first of which has three holes
-#' (wall <- ggplot(datapoly[datapoly$id == 1, ], aes(x = x, y = y)) + geom_holygon(aes(fill = id, group = group)))
+#' wall <- ggplot(datapoly[datapoly$id == 1, ], aes(x = x, y = y))
+#' wall + geom_holygon(aes(fill = id, group = group))
 geom_holygon <- function (mapping = NULL, data = NULL, stat = "identity", position = "identity",
                           na.rm = FALSE, show.legend = NA, inherit.aes = TRUE, rule = "winding", ...) {
   ggplot2::layer(data = data, mapping = mapping, stat = stat, geom = GeomHolygon,
@@ -77,7 +79,7 @@ GeomHolygon <- ggproto(
     object_munch <- function(xmunch) {
       first_idx <- !duplicated(xmunch$group)
       first_rows <- xmunch[first_idx, ]
-      pathGrob(xmunch$x, xmunch$y, default.units = "native",
+      grid::pathGrob(xmunch$x, xmunch$y, default.units = "native",
                id = xmunch$group, rule = rule,
                gp = gpar(col = first_rows$colour,
                          fill = alpha(first_rows$fill, first_rows$alpha),
@@ -86,7 +88,7 @@ GeomHolygon <- ggproto(
     }
     ggplot2:::ggname(
       "geom_holygon",
-      do.call(grobTree, lapply(split(munched, munched$fill), object_munch))
+      do.call(grid::grobTree, lapply(split(munched, munched$fill), object_munch))
     )
   }
 )

@@ -139,9 +139,42 @@ ggplot(descpoints) +
   geom_holygon(rule = "evenodd") + facet_wrap(~ description, nrow = 5)
 ```
 
-But these are not very complicated!  
+## But these are not very complicated polygons!  
+
+Ok ok, so let's have a look at some that are. 
 
 ```{r}
 library(rgdal)
 
-iw <- readOGR(system.file("ext"))
+iw <- readOGR(system.file("extdata", "inlandwaters.gpkg", package = "polyggon"), "inlandwaters")
+plot(iw, col = rainbow(nrow(iw), alpha = 0.4))
+```
+
+Indeed those are some pretty riotously complicated polygons. 
+
+Check out that detail!
+
+```{r}
+library(spdplyr)
+iw %>% filter(Province == "Tasmania") %>% plot(col = "firebrick", border = NA)
+## try again, first we drop the non-main island pieces
+tasmain <- iw %>% filter(Province == "Tasmania")
+library(spbabel)
+sptable(tasmain) <- sptable(tasmain) %>% filter(!island_ | branch_ == 2)
+plot(tasmain, col = "firebrick", border = NA)
+with(sptable(tasmain), points(x_, y_, pch = "."))
+
+
+iwsa <- iw %>% filter(Province == "South Australia") 
+plot(iwsa, col = "dodgerblue", border = NA, bg = "grey"); p <- par(xpd = NA); llgridlines(iwsa); par(p)
+```
+
+Ggplot. 
+
+```{r}
+iwt <- fortify(iw)
+
+## admittedly long and lat are not the right names at all
+ggplot(iwt) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon()
+
+```

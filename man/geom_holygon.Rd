@@ -48,6 +48,8 @@ rather than combining with them. This is most useful for helper functions
 that define both data and aesthetics and shouldn't inherit behaviour from
 the default plot specification, e.g. \code{\link{borders}}.}
 
+\item{rule}{character value specifying the path fill mode: either "winding" or "evenodd", see \code{\link[graphics]{polypath}}}
+
 \item{...}{other arguments passed on to \code{\link{layer}}. These are
 often aesthetics, used to set an aesthetic to a fixed value, like
 \code{color = "red"} or \code{size = 3}. They may also be parameters
@@ -93,7 +95,8 @@ datapoly <- merge(values, positions, by = c("id"))
 (house <- ggplot(datapoly, aes(x = x, y = y)) + geom_holygon(aes(fill = value, group = group)))
 
 # just the front wall (and chimney), with its three parts, the first of which has three holes
-(wall <- ggplot(datapoly[datapoly$id == 1, ], aes(x = x, y = y)) + geom_holygon(aes(fill = id, group = group)))
+wall <- ggplot(datapoly[datapoly$id == 1, ], aes(x = x, y = y))
+wall + geom_holygon(aes(fill = id, group = group))
 }
 \seealso{
 \code{\link{geom_polygon}} for the implementation on \code{\link[grid]{polygonGrob}},

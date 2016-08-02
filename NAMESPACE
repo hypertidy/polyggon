@@ -3,4 +3,5 @@
 export(GeomHolygon)
 export(geom_holygon)
 importFrom(ggplot2,zeroGrob)
+importFrom(grid,gpar)
 importFrom(grid,pathGrob)
