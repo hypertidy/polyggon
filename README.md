@@ -101,12 +101,11 @@ The problem is that `geom_polygon` uses `grid::polygonGrob` and this is not capa
 It's as if we decided to use `polygon`, it's not going to work. To illustrate here I use transparency so we can see the overlapping polygons as slightly darker regions.
 
 ``` r
-spreadpts <- pts %>% mutate(x = x + id, y = y + id)
 split_insert_na <- function(x, f) {
   head(bind_rows(lapply(split(x, f), function(a) rbind(a, NA))), -1)
 }
 
-splitpts <- split(spreadpts, spreadpts$id)
+splitpts <- split(pts, pts$id)
 op <- par(mfrow = c(5, 1), mar = rep(0.2, 4))
 for (i in seq_along(splitpts)) {
   a <- splitpts[[i]]
@@ -127,6 +126,8 @@ But, what if we use `polypath`?
 
 Here I'm careful *not* to use transparency, as the behaviour is different on Windows for `windows()` and `png()` - effectively the results is as if we used the `evenodd` rule no matter what `rule` is set to.
 
+The winding rule.
+
 ``` r
 op <- par(mfrow = c(5, 1), mar = rep(0.2, 4))
 for (i in seq_along(splitpts)) {
@@ -143,13 +144,16 @@ for (i in seq_along(splitpts)) {
 par(op)
 ```
 
+The evenodd rule.
+
 ``` r
 op <- par(mfrow = c(5, 1), mar = rep(0.1, 4))
 for (i in seq_along(splitpts)) {
   a <- splitpts[[i]]
   plot(a$x, a$y, axes = FALSE, xlab = "", ylab = "")
   polypath(split_insert_na(a, a$group), col = "grey", rule = "evenodd")
-}
+  box()
+  }
 ```
 
 ![](figure/README-unnamed-chunk-7-1.png)
@@ -281,6 +285,8 @@ To convert a layer of polygons to triangles we first need to decompose the polyg
 
 The `holey` data set is a table of vertices classified by part, object and describes a partly topological polygon layer. There are vertices used more than once, by other objects and their are shared edges. Here we just look at a three-island, one with three-holes object.
 
+First plot in the traditional way, and with our new wholly righteous geom tools.
+
 ``` r
 library(spbabel)
 sph <- sp(holey)
@@ -298,7 +304,7 @@ ggplot(holey %>% filter(object_==1)) + aes(x = x_, y = y_, group = branch_, fill
 
 ![](figure/README-unnamed-chunk-12-2.png)
 
-Create a list of vertices, branches, and object tables. Vertices and branches are linked by an intermediate table, so that we can store only the unique coordinates.
+Now for the triangulation approach, we need a worker function to create a list of vertices, branches, and object tables. Vertices and branches are linked by an intermediate table, so that we can store only the unique coordinates.
 
 ``` r
 maptables <- function(dat1, map1) {
@@ -481,7 +487,7 @@ system.time({
 ![](figure/README-unnamed-chunk-21-1.png)
 
     #>    user  system elapsed 
-    #>    0.09    0.10    0.20
+    #>    0.08    0.13    0.21
 
     system.time({
       print(ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()  + coord_equal())
@@ -490,7 +496,7 @@ system.time({
 ![](figure/README-unnamed-chunk-21-2.png)
 
     #>    user  system elapsed 
-    #>    1.94    0.32    2.24
+    #>    1.78    0.17    1.98
 
 We can now do nice things like apply continuous scaling across the polygon. **Yes**, that can be done with `polygon` and potentially with other formats for spatial data, but for me the generality of `ggplot2` and relatedly tidy approaches provide the simplest and most valuable way forward.
 

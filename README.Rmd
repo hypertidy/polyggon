@@ -133,12 +133,11 @@ It's as if we decided to use `polygon`, it's not going to work. To illustrate he
 
 
 ```{r}
-spreadpts <- pts %>% mutate(x = x + id, y = y + id)
 split_insert_na <- function(x, f) {
   head(bind_rows(lapply(split(x, f), function(a) rbind(a, NA))), -1)
 }
 
-splitpts <- split(spreadpts, spreadpts$id)
+splitpts <- split(pts, pts$id)
 op <- par(mfrow = c(5, 1), mar = rep(0.2, 4))
 for (i in seq_along(splitpts)) {
   a <- splitpts[[i]]
@@ -156,6 +155,7 @@ But, what if we use `polypath`?
 
 Here I'm careful *not* to use transparency, as the behaviour is different on Windows for  `windows()` and `png()` - effectively the results is as if we used the `evenodd` rule no matter what `rule` is set to. 
 
+The winding rule. 
 
 ```{r}
 op <- par(mfrow = c(5, 1), mar = rep(0.2, 4))
@@ -169,13 +169,17 @@ par(op)
 ```
 
 
+The evenodd rule. 
+
+
 ```{r}
 op <- par(mfrow = c(5, 1), mar = rep(0.1, 4))
 for (i in seq_along(splitpts)) {
   a <- splitpts[[i]]
   plot(a$x, a$y, axes = FALSE, xlab = "", ylab = "")
   polypath(split_insert_na(a, a$group), col = "grey", rule = "evenodd")
-}
+  box()
+  }
 par(op)
 ```
 
@@ -273,6 +277,8 @@ The `holey` data set is a table of vertices classified by part, object and descr
 
 
 
+First plot in the traditional way, and with our new wholly righteous geom tools. 
+
 ```{r}
 library(spbabel)
 sph <- sp(holey)
@@ -285,8 +291,7 @@ ggplot(holey %>% filter(object_==1)) + aes(x = x_, y = y_, group = branch_, fill
 ```
 
 
-
-Create a list of vertices, branches, and object tables. Vertices and branches are linked by an intermediate table, so that we can store only the unique coordinates. 
+Now for the triangulation approach, we need a worker function to create a list of vertices, branches, and object tables. Vertices and branches are linked by an intermediate table, so that we can store only the unique coordinates. 
 
 
 ```{r}
