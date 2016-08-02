@@ -24,7 +24,7 @@ Example polygons
 
 The `polypath` function in R (introduced in `R` version `2.12.0`) provides a general facility to draw *polygon paths*, with a rule for how the space traversed is filled. The two rules are "evenodd" and "winding" (the non-zero rule). Generally, the evenodd rule is the most straightforward, and corresponds to expectations from using GIS software. The non-zero rule only really matters for self-intersecting paths, or when the orientation of a path is of interest.
 
-The `polypath` function provides a simple example for drawing two rectangles in different situations, in order to illustrate the different beween winding and evenodd. Here we build data frames to store these examples, and include group and id attributes to distinguish close ring paths and the different situations.
+The `polypath` function provides a simple example for drawing two rectangles in different situations, in order to illustrate the difference beween winding and evenodd[1]. Here we build data frames to store these examples, and include group and id attributes to distinguish close ring paths and the different situations.
 
 The result in the examples looks like this:
 
@@ -178,10 +178,10 @@ ggplot(descpoints) +
 
 ![](figure/README-unnamed-chunk-8-2.png)
 
-But these are not very complicated polygons!
---------------------------------------------
+Simple polygons are too easy!
+-----------------------------
 
-Ok ok, so let's have a look at some that are.
+Right, so let's have a look at some that are complicated. These polygons were derived from the [Manifold Free Stuff downloads](http://www.manifold.net/updates/data_downloads.shtml) by combining the `Provinces` data set with the `Inland Waters` layer from the `Hydrography` map projects. TODO full provenance.
 
 ``` r
 library(rgdal)
@@ -375,7 +375,7 @@ This lake is used as an example challenge for constrained Delaunay Triangulation
 
 <https://www.cs.cmu.edu/~quake/triangle.html>
 
-The `polyggon` package includes a GeoPackage file with an OGC simple features polygon map of Lake Superior. The single object with `Feature == "Water"` is the main piece and includes hole-filling island polygons as well. It's a great example!
+The `polyggon` package includes a GeoPackage file with an OGC simple features polygon map of Lake Superior, based on NOAA's Great Lakes Medium Resolution Digital Shoreline and provided by the Minnesota Geospatial Commons\](<https://gisdata.mn.gov/dataset/water-lake-superior-basin>). The single object with `Feature == "Water"` is the main piece and includes hole-filling island polygons as well. It's a great example!
 
 ``` r
 library(rgdal)
@@ -472,7 +472,7 @@ system.time({
 ![](figure/README-unnamed-chunk-21-1.png)
 
     #>    user  system elapsed 
-    #>    0.07    0.13    0.20
+    #>    0.12    0.08    0.21
 
     system.time({
       print(ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()  + coord_equal())
@@ -481,9 +481,9 @@ system.time({
 ![](figure/README-unnamed-chunk-21-2.png)
 
     #>    user  system elapsed 
-    #>    1.73    0.18    1.92
+    #>    1.78    0.11    1.91
 
-We can now do nice things like apply continuous scaling across the polygon.
+We can now do nice things like apply continuous scaling across the polygon. **Yes**, that can be done with `polygon` and potentially with other formats for spatial data, but for me the generality of `ggplot2` and relatedly tidy approaches provide the simplest and most valuable way forward.
 
 ``` r
 pp <- pol %>% group_by(part) %>% mutate(horiz = mean(x))
@@ -494,7 +494,7 @@ ggplot(pp) +
 
 ![](figure/README-unnamed-chunk-22-1.png)
 
-In more detail now copy the lake bathymetry into our polygonized mesh and plot.
+For a more interesting example, now copy the lake bathymetry into our polygonized mesh and plot. The lake bathymetry is [downloaded from NOAA](https://www.ngdc.noaa.gov/mgg/greatlakes/superior.html). These are completely independent (from my perspective) data sets, one is a projected polygon map and the other is a non-projected raster grid of topography.
 
 ``` r
 library(raster)
@@ -512,7 +512,9 @@ ggplot(pp) +
 
 ![](figure/README-unnamed-chunk-23-1.png)
 
-We get a much better result by specifying a minimum area to `RTriangle::triangulate`, since we get more triangles in the middle where there's no variation - it doesn't affect the edges much since they were already small to account for the complexit of the polygon edges.
+**TODO** wrap up the tools and compare the default triangulation without specifying a maximum area.
+
+We get a much better result by specifying a minimum area to `RTriangle::triangulate`, since we get more triangles in the middle where there's no variation - it doesn't affect the edges much since they were already small to account for the complexity of the polygon edges.
 
 What about the data size?
 
@@ -539,3 +541,5 @@ analyses across meshes
 adaptive resolution, rather than a compromise
 
 TO BE CONTINUED
+
+[1] TODO doc that illustrates winding vs. evenodd, this is good [wikipedia figure](https://commons.wikimedia.org/wiki/File:Even-odd_and_non-zero_winding_fill_rules.svg) but outlining the implications for polygon layers, and the behaviour of point-in-polygon would be helpful.
