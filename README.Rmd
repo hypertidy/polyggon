@@ -42,7 +42,7 @@ This document was written to complement the discussion here  http://mdsumner.git
 
 ## Example polygons
 
-The `polypath` function in R, introduced in `R` version `2.12.0` in 2010 provides a general facility to draw "polygon paths", with a rule for how the space traversed is filled. The two rules are "evenodd" and "winding" (the non-zero rule). Generally, the evenodd rule is the most straightforward, and corresponds to expectations from using GIS software. The non-zero rule only really matters for self-intersecting paths, or when the orientation of a path is of interest. 
+The `polypath` function in R (introduced in `R` version `2.12.0`) provides a general facility to draw *polygon paths*, with a rule for how the space traversed is filled. The two rules are "evenodd" and "winding" (the non-zero rule). Generally, the evenodd rule is the most straightforward, and corresponds to expectations from using GIS software. The non-zero rule only really matters for self-intersecting paths, or when the orientation of a path is of interest. 
 
 The `polypath` function provides a simple example for drawing two rectangles in different situations, in order to illustrate the different beween winding and evenodd. Here we build data frames to store these examples, and include group and id attributes to distinguish close ring paths and the different situations. 
 
@@ -165,8 +165,9 @@ par(op)
 
 ## ggplot2?
 
-There's no way to use `geom_polygon` to get these "polygons with hole" effects. We write a new `geom_holygon`, inspired by a post on the internet - but also include application across different `id` values as well as different group values. This is exactly analogous to the need to call `polypath` multiple times above. 
+There's no way to use `geom_polygon` to get these "polygons with hole" effects. We write a new `geom_holygon`, [inspired by this post](http://qiita.com/kohske/items/9272e29a75d32416ff5e) - but also include application across different `id` values as well as different group values. This is exactly analogous to the need to call `polypath` multiple times above. 
 
+[^1]: TODO proper attribution and record of the `geom_holygon` function. 
 
 ```{r}
 library(polyggon)
@@ -207,7 +208,15 @@ Check out that detail!
 
 ```{r}
 library(spdplyr)
+p <- par(mar = rep(0, 4), xpd = NA)
 iw %>% filter(Province == "Tasmania") %>% plot(col = "firebrick", border = NA)
+mtext("Tasmanian mainland", side = 3, line = -8)
+mtext("Macquarie Island, remote", side = 1, line = -4)
+llgridlines(filter(iw, Province == "Tasmania"))
+par(p)
+
+
+
 ## try again, first we drop the non-main island pieces
 tasmain <- iw %>% filter(Province == "Tasmania")
 library(spbabel)
@@ -216,7 +225,8 @@ plot(tasmain, col = "firebrick", border = NA)
 with(sptable(tasmain), points(x_, y_, pch = "."))
 ggtas <- fortify(tasmain)
 ## admittedly long and lat are not the right names at all
-ggplot(ggtas) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon()
+ggplot(ggtas) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon() + coord_equal()
+
 
 
 iwsa <- iw %>% filter(Province == "South Australia") 
@@ -232,7 +242,7 @@ Ggplot.
 iwt <- fortify(iw)
 
 ## admittedly long and lat are not the right names at all
-ggplot(iwt) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon()
+ggplot(iwt) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon()  + coord_equal()
 
 ```
 
@@ -253,7 +263,7 @@ sph <- sp(holey)
 plot(sph[1,], col = "grey")
 
 ## but ggplot2 holds its own
-ggplot(holey %>% filter(object_==1)) + aes(x = x_, y = y_, group = branch_, fill = object_) + geom_holygon()
+ggplot(holey %>% filter(object_==1)) + aes(x = x_, y = y_, group = branch_, fill = object_) + geom_holygon()  + coord_equal()
 
 ```
 
@@ -332,7 +342,7 @@ plot(tr$P)
 apply(tr$T, 1, function(tindex) polygon(tr$P[tindex, ], col = "grey", border = NA))
 
 pol <- tibble(x = tr$P[t(tr$T), 1L], y = tr$P[t(tr$T), 2L], part = rep(seq(nrow(tr$T)), each = 3))
-ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()
+ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()  + coord_equal()
 ```
 
 
@@ -362,7 +372,7 @@ gp <- (slake %>%
   sptable() %>% 
   ggplot()) + 
   aes(x = x_, y = y_, group = branch_) + 
-  geom_holygon()
+  geom_holygon()  + coord_equal()
 
 gp + coord_equal()
 ```
@@ -409,7 +419,7 @@ pol <- tibble(x = tr$P[t(tr$T[!badtris, ]), 1L],
               y = tr$P[t(tr$T[!badtris, ]), 2L], 
               part = rep(seq(nrow(tr$T[!badtris, ])), each = 3))
 
-ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()
+ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()  + coord_equal()
 ```
 
 An interesting thing to compare is the speed. Of course to be fair we should avoid the use of apply first. 
@@ -429,7 +439,7 @@ system.time({
 })
 
 system.time({
-  print(ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon())
+  print(ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()  + coord_equal())
 })
 
 
@@ -481,3 +491,5 @@ Why not just plot the raster, mask the grid out by polygon?
 analyses across meshes
 
 adaptive resolution, rather than a compromise
+
+TO BE CONTINUED
