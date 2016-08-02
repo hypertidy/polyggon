@@ -5,7 +5,9 @@
 
 [![Travis-CI Build Status](https://travis-ci.org/mdsumner/polyggon.svg?branch=master)](https://travis-ci.org/mdsumner/polyggon) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/mdsumner/polyggon?branch=master&svg=true)](https://ci.appveyor.com/project/mdsumner/polyggon) [![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version/polyggon)](https://cran.r-project.org/package=polyggon) [![CRAN RStudio mirror downloads](http://cranlogs.r-pkg.org/badges/polyggon)](http://www.r-pkg.org/pkg/polyggon) [![Coverage Status](https://img.shields.io/codecov/c/github/mdsumner/polyggon/master.svg)](https://codecov.io/github/mdsumner/polyggon?branch=master)
 
-**PLEASE NOTE:** this work is very much *in-progress*, and this package and documentation is not completely reproducible or self-contained yet. Please let me know if the examples here are of interest, very open to suggestions and for the use of real-world data. Much of the motivation comes from being able to plot polygons in 3D with `rgl`, but that's pretty rigid and hard to share. We can build these tools to be used with new web technologies, but there's a bit of work to do to synchronize the traditional GIS-like workflows and formats to those used by graphics and web tools.
+**PLEASE NOTE:** this work is very much *in-progress*, and this package and documentation is not completely reproducible or self-contained yet. The package might be passing build tests, but that's because it hardly does anything - the readme below relies on a local set up for now.
+
+Please let me know if the examples here are of interest, very open to suggestions and for the use of real-world data. Much of the motivation comes from being able to plot polygons in 3D with `rgl`, but that's pretty rigid and hard to share. We can build these tools to be used with new web technologies, but there's a bit of work to do to synchronize the traditional GIS-like workflows and formats to those used by graphics and web tools.
 
 Polygons in R
 -------------
@@ -470,7 +472,7 @@ system.time({
 ![](figure/README-unnamed-chunk-21-1.png)
 
     #>    user  system elapsed 
-    #>    0.04    0.16    0.21
+    #>    0.07    0.13    0.20
 
     system.time({
       print(ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()  + coord_equal())
@@ -479,7 +481,7 @@ system.time({
 ![](figure/README-unnamed-chunk-21-2.png)
 
     #>    user  system elapsed 
-    #>    1.73    0.14    1.93
+    #>    1.73    0.18    1.92
 
 We can now do nice things like apply continuous scaling across the polygon.
 

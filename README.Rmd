@@ -26,7 +26,9 @@ library(ggplot2)
 ```
 
 
-**PLEASE NOTE:** this work is very much *in-progress*, and this package and documentation is not completely reproducible or self-contained yet. Please let me know if the examples here are of interest, very open to suggestions and for the use of real-world data. Much of the motivation comes from being able to plot polygons in 3D with `rgl`, but that's pretty rigid and hard to share. We can build these tools to be used with new web technologies, but there's a bit of work to do to synchronize the traditional GIS-like workflows and formats to those used by graphics and web tools. 
+**PLEASE NOTE:** this work is very much *in-progress*, and this package and documentation is not completely reproducible or self-contained yet. The package might be passing build tests, but that's because it hardly does anything - the readme below relies on a local set up for now. 
+
+Please let me know if the examples here are of interest, very open to suggestions and for the use of real-world data. Much of the motivation comes from being able to plot polygons in 3D with `rgl`, but that's pretty rigid and hard to share. We can build these tools to be used with new web technologies, but there's a bit of work to do to synchronize the traditional GIS-like workflows and formats to those used by graphics and web tools. 
 
 
 ## Polygons in R
