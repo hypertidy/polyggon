@@ -8,7 +8,12 @@
 Polygons in R
 -------------
 
-Building on this discussion: <http://mdsumner.github.io/2016/03/03/polygons-R.html>
+It is possible to draw "polygons with holes" with `ggplot2`. Here we show two methods:
+
+1.  Write our own geom for `ggplot2`
+2.  Use triangulation
+
+This document was written to complement the discussion here: <http://mdsumner.github.io/2016/03/03/polygons-R.html>
 
 ``` r
 ## taken from ?polypath
@@ -219,3 +224,101 @@ ggplot(iwt) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon()
 ```
 
 ![](figure/README-unnamed-chunk-9-1.png)
+
+An alternative with triangulation
+---------------------------------
+
+To convert a layer of polygons to triangles we first need to decompose the polygons completely into line segments, and to do that we first need the vertices classified by branch and object (each branch, or part, is a "single ring" or "self-connect path").
+
+``` r
+library(spbabel)
+sph <- sp(holey)
+plot(sph[1,], col = "grey")
+```
+
+![](figure/README-unnamed-chunk-10-1.png)
+
+``` r
+ggplot(holey %>% filter(object_==1)) + aes(x = x_, y = y_, group = branch_, fill = object_) + geom_holygon()
+```
+
+![](figure/README-unnamed-chunk-10-2.png)
+
+``` r
+maptables <- function(dat1, map1) {
+  ## we expect that these attributes, taken together are "unique vertices" potentially shared by neighbours
+  v_atts <- c("x_", "y_")
+  o_atts <- setdiff(names(map1), v_atts)
+  b_atts <- setdiff(o_atts, c("order_", "vertex_"))
+  bxv_atts <- c(setdiff(names(map1), c("object_", "island_", v_atts)), "vertex_")
+ 
+  ## classify unique vertices by unique index
+  ## could tidy this up some more . . .
+  map1 <- map1 %>%
+    mutate(vertex_  = as.integer(factor(do.call(paste, select_(map1, .dots = v_atts))))) %>% 
+    mutate(vertex_ = spbabel:::id_n(length(unique(vertex_)))[vertex_])
+  
+  branchV_to_segmentV <- function(x) {
+    head(matrix(x, ncol = 2, nrow = length(x) + 1L), -1L)
+  }
+  
+  #map1$vertex_ <- id_nrow(nrow(map1))[map1$vertex_]
+  ## branches, owner object and island status
+  b <- map1 %>% distinct_(.dots = b_atts) 
+  ## four tables (dat1, map2, map4, map5)
+  bXv <- map1 %>% dplyr::select_(.dots = bxv_atts)
+  v <- map1 %>% distinct_(.dots = c(v_atts, "vertex_"))
+  res <- list(o = dat1, b = b,  bXv = bXv, v = v)
+  res
+}
+```
+
+Create a list of vertices, branches, and object tables. Vertices and branches are linked by an intermediate table, so that we can store only the unique coordinates.
+
+``` r
+mt <- maptables(data.frame(name = "wall", object_ = 1), holey %>% filter(object_ == 1))
+nrow(holey %>% filter(object_ == 1))  ## how many coordinates?
+#> [1] 32
+nrow(mt$v)   ## how many unique coordinates?
+#> [1] 26
+```
+
+Now we can build a "planar straight line graph" and triangulate. The triangulation algorithm needs the line segments as fully fledged entities, so that it it can ensure those edges exist in the triangle mesh (this is not something the Delaunay criterion provides, so the algorithm is "mostly Delaunay" - see Shewchuk).
+
+``` r
+path2seg <- function(x) {
+  head(suppressWarnings(matrix(x, nrow = length(x) + 1, ncol = 2, byrow = FALSE)), -2L)
+}
+
+mt$v$countingIndex <- seq(nrow(mt$v))
+nonuq <- inner_join(mt$bXv, mt$v)
+#> Joining, by = "vertex_"
+library(RTriangle)
+ps <- pslg(P = as.matrix(mt$v[, c("x_", "y_")]), S = do.call(rbind, lapply(split(nonuq, nonuq$branch_), function(x) path2seg(x$countingIndex))))
+
+## TODO: robust hole filtering
+## I happen to know this will work, but we can use triangle filtering post hoc too, or use a known inner centroid
+ps$H <- holey %>% filter(!island_) %>% 
+  group_by(branch_) %>% summarize(xm = mean(x_), ym = mean(y_)) %>% 
+  select(xm, ym) %>% 
+  as.matrix()
+tr <- triangulate(ps)
+```
+
+Now we can use polygon or geom\_polygon.
+
+``` r
+plot(tr$P)
+apply(tr$T, 1, function(tindex) polygon(tr$P[tindex, ], col = "grey", border = NA))
+```
+
+![](figure/README-unnamed-chunk-13-1.png)
+
+    #> NULL
+
+    pol <- tibble(x = tr$P[t(tr$T), 1L], y = tr$P[t(tr$T), 2L], part = rep(seq(nrow(tr$T)), each = 3))
+    ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()
+
+![](figure/README-unnamed-chunk-13-2.png)
+
+Clearly to make this useful we need to abstract away another level, so we can have multiple IDs each with multiple parts. I don't think we can use RTriangle as-is to maintain this object level, but that's the same for the graphics functions anyway.
