@@ -1,6 +1,6 @@
 ---
 output:
-  rmarkdown::html_document:
+  rmarkdown::github_document:
     fig_width: 6
     fig_height: 8
 ---
@@ -337,3 +337,144 @@ ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()
 Clearly to make this useful we need to abstract away another level, so we can have multiple IDs each with multiple parts. I don't think we can use RTriangle as-is to maintain this object level, but that's the same for the graphics functions anyway. 
 
 
+## Lake Superior
+
+This lake is used as an example challenge for constrained Delaunay Triangulation on a polygon with holes in Jonathan Shewchuk's Triangle library. See here: 
+
+https://www.cs.cmu.edu/~quake/triangle.html
+
+
+The `polyggon` package includes a GeoPackage file with an OGC simple features polygon map of Lake Superior. The single object with `Feature == "Water"` is the main piece and includes hole-filling island polygons as well. It's a great example!
+
+```{r}
+library(rgdal)
+lake <- readOGR(system.file("extdata", "water_lake_superior_basin.gpkg", package = "polyggon"),
+                "lake_superior_basin")
+slake <- filter(lake, Feature == "Water")
+
+plot(slake, col = "grey")
+
+library(spbabel)
+gp <- (slake %>% 
+  sptable() %>% 
+  ggplot()) + 
+  aes(x = x_, y = y_, group = branch_) + 
+  geom_holygon()
+
+gp + coord_equal()
+```
+
+Drawing proper holes with `ggplot2` is great, but there's also really good reasons to be able to treat a polygon as a triangular mesh. 
+
+```{r}
+lakemt <- maptables(slake, sptable(slake))
+lakemt$v$countingIndex <- seq(nrow(lakemt$v))
+nonuq <- inner_join(lakemt$bXv, lakemt$v)
+library(RTriangle)
+ps <- pslg(P = as.matrix(lakemt$v[, c("x_", "y_")]), 
+           S = do.call(rbind, lapply(split(nonuq, nonuq$branch_), function(x) path2seg(x$countingIndex))))
+
+
+## TODO: 
+## this time the simple centroid won't work, we need to post-process the triangles
+#ps$H <- sptable(slake) %>% filter(!island_) %>% 
+#  group_by(branch_) %>% summarize(xm = mean(x_), ym = mean(y_)) %>% 
+#  select(xm, ym) %>% 
+#  as.matrix()
+## min size takes T count from 47460 to 58246
+tr <- triangulate(ps, a = 1e7)
+
+centroids <- t(apply(tr$T, 1, function(x) apply(tr$P[x, ], 2, mean)))
+badtris <- is.na(over(SpatialPoints(centroids, proj4string = CRS(proj4string(slake))), 
+                slake)[[1]])
+
+```
+
+Prove again that we can use either polygon or geom_polygon with these triangles. 
+
+TBD
+
+```{r,eval=FALSE}
+plot(tr$P, asp = 1, pch = ".")
+## this is by far the slowest part of this knit
+apply(tr$T[!badtris, ], 1, function(tindex) polygon(tr$P[tindex, ], col = "grey", border = alpha("black", 0.2)))
+
+```
+
+```{r}
+pol <- tibble(x = tr$P[t(tr$T[!badtris, ]), 1L], 
+              y = tr$P[t(tr$T[!badtris, ]), 2L], 
+              part = rep(seq(nrow(tr$T[!badtris, ])), each = 3))
+
+ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()
+```
+
+An interesting thing to compare is the speed. Of course to be fair we should avoid the use of apply first. 
+
+```{r}
+## slow
+##tritab <- head(do.call(rbind, lapply(split(pol, pol$part), function(x) rbind(x, NA))), -1)
+## fast:
+tritab <- head(pol[unlist(lapply(split(seq(nrow(pol)), pol$part), function(x) c(x, NA_real_))), ], -1)
+
+
+system.time({
+  plot(tr$P, asp = 1, pch = ".")
+#apply(tr$T[!badtris, ], 1, function(tindex) polygon(tr$P[tindex, ], col = "grey", border = alpha("black", 0.2)))
+  polygon(tritab$x, tritab$y, col = "grey", border = NA)
+  
+})
+
+system.time({
+  print(ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon())
+})
+
+
+```
+
+
+We can now do nice things like apply continuous scaling across the polygon. 
+
+
+```{r}
+pp <- pol %>% group_by(part) %>% mutate(horiz = mean(x))
+ggplot(pp) + 
+  aes(x = x, y= y, group = part, fill = horiz) + 
+  geom_polygon()  + coord_equal()
+  
+```
+
+In more detail now copy the lake bathymetry into our polygonized mesh and plot. 
+
+```{r, fig.width=9, fig.height=7}
+library(raster)
+pol$bathy <- extract(raster("data-raw/superior_lld/superior.tif"), project(as.matrix(pol[, c("x", "y")]), projection(slake), inv = TRUE))
+pp <- pol %>% group_by(part) %>% mutate(bathy = mean(bathy))
+ggplot(pp) + 
+  aes(x = x, y= y, group = part, fill = bathy) + 
+  geom_polygon()  + coord_equal()
+  
+```
+
+
+We get a much better result by specifying a minimum area to `RTriangle::triangulate`, since we get more triangles in the middle where there's no variation - it doesn't affect the edges much since they were already small to account for the complexit of the polygon edges. 
+
+What about the data size? 
+
+```{r}
+pryr::object_size(slake)
+
+pryr::object_size(pp)
+
+pryr::object_size(tr)
+```
+
+## Next, why are polygon meshes useful?
+
+Why not just plot the raster, mask the grid out by polygon? 
+
+3D plotting
+
+analyses across meshes
+
+adaptive resolution, rather than a compromise
