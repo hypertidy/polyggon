@@ -25,6 +25,7 @@ library(dplyr)
 library(ggplot2)
 ```
 
+
 ## Polygons in R
 
 It is possible to draw "polygons with holes" with `ggplot2`. Here we show two methods: 
@@ -48,6 +49,7 @@ The result in the examples looks like this:
 ```{r}
 example(polypath, echo = FALSE)
 ```
+
 
 ```{r}
 ## taken from ?polypath
@@ -92,7 +94,9 @@ pts <- bind_rows(pts1, pts2, pts3, pts4, pts5)
 ```
 
 
+
 There's a problem with ggplot2 if we try to plot these naively. 
+
 
 
 ```{r}
@@ -105,9 +109,11 @@ ggplot(inner_join(pts, objects)) +
   geom_polygon() + facet_wrap(~ description, nrow = 5)
 ```
 
+
 The problem is that `geom_polygon` uses `grid::polygonGrob` and this is not capable of drawing holes. 
 
 It's as if we decided to use `polygon` in R, it's not going to work. Here I use transparency so we can see the overlapping polygons as slightly darker regions. 
+
 
 
 ```{r}
@@ -127,7 +133,9 @@ par(op)
 #lapply(split(spreadpts, spreadpts$id), function(a) polygon(split_insert_na(a, a$group), col = alpha("grey", 0.5)))
 ```
 
+
 But, what if we use `polypath`?  Here I'm careful *not* to use transparency, as the behaviour is different on Windows for  `windows()` and `png()` - effectively the results is as if we used the `evenodd` rule no matter what `rule` is set to. 
+
 
 ```{r}
 op <- par(mfrow = c(5, 1), mar = rep(0.1, 4))
@@ -140,6 +148,7 @@ for (i in seq_along(splitpts)) {
 par(op)
 ```
 
+
 ```{r}
 op <- par(mfrow = c(5, 1), mar = rep(0.1, 4))
 for (i in seq_along(splitpts)) {
@@ -150,9 +159,11 @@ for (i in seq_along(splitpts)) {
 par(op)
 ```
 
+
 ## ggplot2?
 
 There's no way to use `geom_polygon` to get these "polygons with hole" effects. We write a new `geom_holygon`, inspired by a post on the internet - but also include application across different `id` values as well as different group values. This is exactly analogous to the need to call `polypath` multiple times above. 
+
 
 ```{r}
 library(polyggon)
@@ -170,9 +181,11 @@ ggplot(descpoints) +
   geom_holygon(rule = "evenodd") + facet_wrap(~ description, nrow = 5)
 ```
 
+
 ## But these are not very complicated polygons!  
 
 Ok ok, so let's have a look at some that are. 
+
 
 ```{r}
 library(rgdal)
@@ -181,9 +194,13 @@ iw <- readOGR(system.file("extdata", "inlandwaters.gpkg", package = "polyggon"),
 plot(iw, col = rainbow(nrow(iw), alpha = 0.4))
 ```
 
+
+
 Indeed those are some pretty riotously complicated polygons. 
 
 Check out that detail!
+
+
 
 ```{r}
 library(spdplyr)
@@ -203,7 +220,10 @@ iwsa <- iw %>% filter(Province == "South Australia")
 plot(iwsa, col = "dodgerblue", border = NA, bg = "grey"); p <- par(xpd = NA); llgridlines(iwsa); par(p)
 ```
 
+
+
 Ggplot. 
+
 
 ```{r}
 iwt <- fortify(iw)
@@ -213,12 +233,14 @@ ggplot(iwt) + aes(x = long, y = lat, group = group, fill = id) + geom_holygon()
 
 ```
 
+
 ## An alternative with triangulation
 
 To convert a layer of polygons to triangles we first need to decompose the polygons completely into line segments, and
 to do that we first need the vertices classified by branch and object (each branch, or part, is a "single ring" or "self-connect path"). 
 
 The `holey` data set is a table of vertices classified by part, object and describes a partly topological polygon layer. There are vertices used more than once, by other objects and their are shared edges. Here we just look at a three-island, one with three-holes object. 
+
 
 
 ```{r}
@@ -232,7 +254,10 @@ ggplot(holey %>% filter(object_==1)) + aes(x = x_, y = y_, group = branch_, fill
 
 ```
 
+
+
 Create a list of vertices, branches, and object tables. Vertices and branches are linked by an intermediate table, so that we can store only the unique coordinates. 
+
 
 ```{r}
 maptables <- function(dat1, map1) {
@@ -264,13 +289,17 @@ maptables <- function(dat1, map1) {
 ```
 
 
+
 ```{r}
 mt <- maptables(data.frame(name = "wall", object_ = 1), holey %>% filter(object_ == 1))
 nrow(holey %>% filter(object_ == 1))  ## how many coordinates?
 nrow(mt$v)   ## how many unique coordinates?
 ```
 
+
 Now we can build a "planar straight line graph" and triangulate. The triangulation algorithm needs the line segments as fully fledged entities, so that it it can ensure those edges exist in the triangle mesh (this is not something the Delaunay criterion provides, so the algorithm is "mostly Delaunay" - see Shewchuk). 
+
+
 
 ```{r}
 path2seg <- function(x) {
@@ -289,10 +318,11 @@ ps$H <- holey %>% filter(!island_) %>%
   select(xm, ym) %>% 
   as.matrix()
 tr <- triangulate(ps)
-
-
 ```
+
+
 Now we can use polygon or geom_polygon. 
+
 
 ```{r}
 plot(tr$P)
@@ -301,6 +331,8 @@ apply(tr$T, 1, function(tindex) polygon(tr$P[tindex, ], col = "grey", border = N
 pol <- tibble(x = tr$P[t(tr$T), 1L], y = tr$P[t(tr$T), 2L], part = rep(seq(nrow(tr$T)), each = 3))
 ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()
 ```
+
+
 
 Clearly to make this useful we need to abstract away another level, so we can have multiple IDs each with multiple parts. I don't think we can use RTriangle as-is to maintain this object level, but that's the same for the graphics functions anyway. 
 
