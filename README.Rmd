@@ -28,15 +28,19 @@ library(ggplot2)
 
 **PLEASE NOTE:** this work is very much *in-progress*, and this package and documentation is not completely reproducible or self-contained yet. The package might be passing build tests, but that's because it hardly does anything - the readme below relies on a local set up for now. 
 
+This is also not a helpful guide if you are learning to make maps in R, this is very much experimental and very much subject to change. 
+
 Please let me know if the examples here are of interest, very open to suggestions and for the use of real-world data. Much of the motivation comes from being able to plot polygons in 3D with `rgl`, but that's pretty rigid and hard to share. We can build these tools to be used with new web technologies, but there's a bit of work to do to synchronize the traditional GIS-like workflows and formats to those used by graphics and web tools. 
 
 
 ## Polygons in R
 
-It is possible to draw "polygons with holes" with `ggplot2`. Here we show two methods: 
+It is possible to draw "polygons with holes" with `ggplot2`. Here we show two methods and explore some of the details.  
 
-1. Write our own geom for `ggplot2`
-2. Use triangulation
+1. Write our own geom for `ggplot2` to deal with holes
+2. Use triangulation, so we only draw what's there. 
+
+For some background on the R graphics capabilities see https://www.stat.auckland.ac.nz/~paul/R/Paths/MurrellPaths.pdf. 
 
 
 This document was written to complement the discussion here  http://mdsumner.github.io/2016/03/03/polygons-R.html and is part of an ongoing effort to improve the useability of spatial data in R. 
