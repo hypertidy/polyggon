@@ -19,12 +19,14 @@ It is possible to draw "polygons with holes" with `ggplot2`. Here we show two me
 
 This document was written to complement the discussion here <http://mdsumner.github.io/2016/03/03/polygons-R.html> and is part of an ongoing effort to improve the useability of spatial data in R.
 
+I use a mix of idioms of R code from several packages, including some packages of my own and maybe it's too mixed. This is at least partly because I'm still learning the best ways to navigate when using a mixture of the packages, especially `sp`, `ggplot2` and `dplyr` that have their own established styles and perspectives.
+
 Example polygons
 ----------------
 
-The `polypath` function in R (introduced in `R` version `2.12.0`) provides a general facility to draw *polygon paths*, with a rule for how the space traversed is filled. The two rules are "evenodd" and "winding" (the non-zero rule). Generally, the evenodd rule is the most straightforward, and corresponds to expectations from using GIS software. The non-zero rule only really matters for self-intersecting paths, or when the orientation of a path is of interest.
+The `polypath` function in R (introduced in `R` version `2.12.0`) provides a general facility to draw *polygon paths*, with a rule for how the space traversed is filled. The two rules are "evenodd" and "winding" (the non-zero rule). Generally, the evenodd rule is the most straightforward, and corresponds to expectations from using GIS software. The non-zero rule only really matters for self-intersecting paths, or when the orientation of a path is of interest[1].
 
-The `polypath` function provides a simple example for drawing two rectangles in different situations, in order to illustrate the difference beween winding and evenodd[1]. Here we build data frames to store these examples, and include group and id attributes to distinguish close ring paths and the different situations.
+The `polypath` function provides a simple example for drawing two rectangles in different situations, in order to illustrate the difference beween winding and evenodd[2]. Here we build data frames to store these examples, and include group and id attributes to distinguish close ring paths and the different situations.
 
 The result in the examples looks like this:
 
@@ -92,7 +94,7 @@ ggplot(inner_join(pts, objects)) +
 
 The problem is that `geom_polygon` uses `grid::polygonGrob` and this is not capable of drawing holes.
 
-It's as if we decided to use `polygon` in R, it's not going to work. Here I use transparency so we can see the overlapping polygons as slightly darker regions.
+It's as if we decided to use `polygon`, it's not going to work. To illustrate here I use transparency so we can see the overlapping polygons as slightly darker regions.
 
 ``` r
 spreadpts <- pts %>% mutate(x = x + id, y = y + id)
@@ -101,11 +103,12 @@ split_insert_na <- function(x, f) {
 }
 
 splitpts <- split(spreadpts, spreadpts$id)
-op <- par(mfrow = c(5, 1), mar = rep(0.1, 4))
+op <- par(mfrow = c(5, 1), mar = rep(0.2, 4))
 for (i in seq_along(splitpts)) {
   a <- splitpts[[i]]
   plot(a$x, a$y, axes = FALSE, xlab = "", ylab = "")
   polygon(split_insert_na(a, a$group), col = alpha("grey", 0.5))
+  box()
 }
 ```
 
@@ -116,15 +119,17 @@ par(op)
 #lapply(split(spreadpts, spreadpts$id), function(a) polygon(split_insert_na(a, a$group), col = alpha("grey", 0.5)))
 ```
 
-But, what if we use `polypath`? Here I'm careful *not* to use transparency, as the behaviour is different on Windows for `windows()` and `png()` - effectively the results is as if we used the `evenodd` rule no matter what `rule` is set to.
+But, what if we use `polypath`?
+
+Here I'm careful *not* to use transparency, as the behaviour is different on Windows for `windows()` and `png()` - effectively the results is as if we used the `evenodd` rule no matter what `rule` is set to.
 
 ``` r
-op <- par(mfrow = c(5, 1), mar = rep(0.1, 4))
+op <- par(mfrow = c(5, 1), mar = rep(0.2, 4))
 for (i in seq_along(splitpts)) {
   a <- splitpts[[i]]
   plot(a$x, a$y, axes = FALSE, xlab = "", ylab = "")
   polypath(split_insert_na(a, a$group), col = "grey", rule = "winding")
-  
+  box()
 }
 ```
 
@@ -472,7 +477,7 @@ system.time({
 ![](figure/README-unnamed-chunk-21-1.png)
 
     #>    user  system elapsed 
-    #>    0.12    0.08    0.21
+    #>    0.13    0.19    0.33
 
     system.time({
       print(ggplot(pol) + aes(x = x, y = y, group = part) + geom_polygon()  + coord_equal())
@@ -481,7 +486,7 @@ system.time({
 ![](figure/README-unnamed-chunk-21-2.png)
 
     #>    user  system elapsed 
-    #>    1.78    0.11    1.91
+    #>    2.14    0.17    2.34
 
 We can now do nice things like apply continuous scaling across the polygon. **Yes**, that can be done with `polygon` and potentially with other formats for spatial data, but for me the generality of `ggplot2` and relatedly tidy approaches provide the simplest and most valuable way forward.
 
@@ -542,4 +547,6 @@ adaptive resolution, rather than a compromise
 
 TO BE CONTINUED
 
-[1] TODO doc that illustrates winding vs. evenodd, this is good [wikipedia figure](https://commons.wikimedia.org/wiki/File:Even-odd_and_non-zero_winding_fill_rules.svg) but outlining the implications for polygon layers, and the behaviour of point-in-polygon would be helpful.
+[1] The orientation of a path becomes much more relevant in 3D, when the *inside* and the *outside* of a shape takes on another meaning.
+
+[2] TODO doc that illustrates winding vs. evenodd, this is good [wikipedia figure](https://commons.wikimedia.org/wiki/File:Even-odd_and_non-zero_winding_fill_rules.svg) but outlining the implications for polygon layers, and the behaviour of point-in-polygon would be helpful.
