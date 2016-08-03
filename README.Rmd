@@ -295,6 +295,7 @@ Now for the triangulation approach, we need a worker function to create a list o
 
 
 ```{r}
+## moving this to spbabel
 maptables <- function(dat1, map1) {
   ## we expect that these attributes, taken together are "unique vertices" potentially shared by neighbours
   v_atts <- c("x_", "y_")
@@ -326,7 +327,7 @@ maptables <- function(dat1, map1) {
 
 
 ```{r}
-mt <- maptables(data.frame(name = "wall", object_ = 1), holey %>% filter(object_ == 1))
+mt <- spbabel:::map_tablesFrom2(data.frame(name = "wall", object_ = 1), holey %>% filter(object_ == 1))
 nrow(holey %>% filter(object_ == 1))  ## how many coordinates?
 nrow(mt$v)   ## how many unique coordinates?
 ```
@@ -402,7 +403,7 @@ gp + coord_equal()
 Drawing proper holes with `ggplot2` is great, but there's also really good reasons to be able to treat a polygon as a triangular mesh. 
 
 ```{r}
-lakemt <- maptables(slake, sptable(slake))
+lakemt <- spbabel:::map_tablesFrom2(slake, sptable(slake))
 lakemt$v$countingIndex <- seq(nrow(lakemt$v))
 nonuq <- inner_join(lakemt$bXv, lakemt$v)
 library(RTriangle)
