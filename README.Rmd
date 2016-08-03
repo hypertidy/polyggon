@@ -506,6 +506,27 @@ pryr::object_size(pp)
 pryr::object_size(tr)
 ```
 
+
+```{r badass, eval=FALSE}
+install.packages("rgl")
+library(rgl)
+
+tr <- RTriangle::triangulate(ps, a = 1e6)
+
+centroids <- t(apply(tr$T, 1, function(x) apply(tr$P[x, ], 2, mean)))
+badtris <- is.na(over(SpatialPoints(centroids, proj4string = CRS(proj4string(slake))), 
+                      slake)[[1]])
+
+zz <- extract(raster("data-raw/superior_lld/superior.tif"), project(tr$P, projection(slake), inv = TRUE))
+tt <- tetrahedron3d()
+tt$vb <- t(cbind(tr$P, zz, 1))
+tt$it <- t(tr$T[!badtris, ])
+aspect3d(1, 1, 15)
+shade3d(tt, col = "grey")
+axes3d()
+```
+
+
 ## Next, why are polygon meshes useful?
 
 Why not just plot the raster, mask the grid out by polygon? 
